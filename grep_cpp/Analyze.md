@@ -14,4 +14,4 @@ First of all I will begin by optimize basics things like:
 
 The command **strace** is good for detect syscall
 
-The command **perf** is good for detect time in function
+The command **perf** is good for analyse performance
