@@ -2,7 +2,7 @@ NAME = custom_grep
 
 CXX = c++
 
-CXXFLAGS = -Wall -Wextra -Werror -std=c++17 -g3
+CXXFLAGS = -Wall -Wextra -Werror -std=c++17 -g3 -O2
 
 SRC = grep.cpp
 
@@ -22,6 +22,9 @@ clean:
 fclean: clean
 	rm -rf $(NAME)
 
+debug: $(OBJ)
+	$(CXX) $(CXXFLAGS) -fno-omit-frame-pointer $(OBJ) -o $(NAME)
+
 re: fclean all
 
-.PHONY: all clean fclean re
+.PHONY: all clean fclean re debug

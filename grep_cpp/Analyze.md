@@ -1,17 +1,14 @@
 # Analyse of data
 
-An using **hyperfine** we will have this informations:
-![Return's image of hyperfine](./images/benchmacks.png "Initial Benchmarks")
+In this version I edit the code for to have only one open function. With that base we will check performance.
 
-We can see rg is 400% more faster than grep -rn and custom_grep -r.
-we can also see than rg have sinificatively take less of time in User's code than in System.
-Use of Memory RAM is also different in function of command, I don't know for now at what it do. 
+```**perf record -g -o perf_custom_grep_1open.data -- custom_grep -r "llvm" .**```
+This command record command's preformance given to perf.
 
-First of all I will begin by optimize basics things like:
- - limited calls to system 
- - reduce time in function
- - cleaning code
+An using ```**perf report -i perf_custom.data**``` we could check what function cost more of time in CPU:
+![Return's image of perf](./images/perf_cgrep_1open.png "Perf custom grep wiht only one open")
 
-The command **strace** is good for detect syscall
+And also compare with previous custom_grep:
+![Return's image of perf](./images/perf_cgrep.png "Perf old custom grep")
 
-The command **perf** is good for analyse performance
+Now we can see more memory is used with the second custom_grep although rdir take less time of CPU. There are a lot of call to read, if we remove ifstream (open) and read, we can gain somme perf.
