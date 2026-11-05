@@ -3,50 +3,90 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <string>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <algorithm>
+#include <string_view>
 
 void process_file(const std::filesystem::path& path, const std::string& pattern)
 {
-    std::ifstream file(path, std::ios::binary);
+    int fd = open(path.c_str(), O_RDONLY);
 
-    if (!file)
+    if (fd == -1)
         return;
 
-    constexpr std::size_t BUFFER_SIZE = 8192;
-    char buffer[BUFFER_SIZE];
+    struct stat st;
 
-    std::string content;
-
-    while (file.read(buffer, BUFFER_SIZE) || file.gcount() > 0)
-        content.append(buffer, file.gcount());
-
-    if (content.find('\0') != std::string::npos)
+    if (fstat(fd, &st) == -1)
     {
-        if (content.find(pattern) != std::string::npos)
-            std::cout << "custom_grep: " << path << ": binary file matches\n";
+        close(fd);
         return;
     }
 
-    std::istringstream stream(content);
-    std::string line;
+    if (st.st_size == 0)
+    {
+        close(fd);
+        return;
+    }
+
+    std::size_t size = static_cast<std::size_t>(st.st_size);
+
+    void* mapping = mmap(nullptr, size, PROT_READ, MAP_PRIVATE, fd, 0);
+
+    close(fd);
+
+    if (mapping == MAP_FAILED)
+        return;
+
+    const char* content = static_cast<const char*>(mapping);
+
+    if (std::memchr(content, '\0', size) != nullptr)
+    {
+        if (std::search(content, content + size,
+                        pattern.begin(), pattern.end()) != content + size)
+        {
+            std::cout << "custom_grep: " << path
+                      << ": binary file matches\n";
+        }
+
+        munmap(mapping, size);
+        return;
+    }
+
+    const char* end = content + size;
+    const char* line_start = content;
     int count_line = 0;
 
-    while (std::getline(stream, line))
+    while (line_start < end)
     {
+        const char* line_end = static_cast<const char*>(
+            std::memchr(line_start, '\n', end - line_start));
+
+        if (!line_end)
+            line_end = end;
+
         ++count_line;
+
+        std::string_view line(line_start, line_end - line_start);
 
         std::size_t found = line.find(pattern);
 
-        if (found != std::string::npos)
+        if (found != std::string_view::npos)
         {
             std::cout << "\033[38;2;118;38;113m" << path << "\033[0m"
-                << "\033[0;32m:" << count_line << ":\033[0m"
-                << line.substr(0, found)
-                << "\033[0;31m" << line.substr(found, pattern.length()) << "\033[0m"
-                << line.substr(found + pattern.length())
-                << std::endl;
+                      << "\033[0;32m:" << count_line << ":\033[0m"
+                      << line.substr(0, found)
+                      << "\033[0;31m" << line.substr(found, pattern.length()) << "\033[0m"
+                      << line.substr(found + pattern.length())
+                      << std::endl;
         }
+
+        line_start = line_end + (line_end < end);
     }
+
+    munmap(mapping, size);
 }
 
 void rdir(const std::filesystem::path& path, const std::string& pattern)
@@ -92,7 +132,7 @@ int main(int ar, char** av)
         if (n_opt > 0 && opt[1] == 'r')
             rdir(path, pattern);
         else
-            std::cout << "Only -r option." << std::endl;
+            std::cout << "Only -r option.\n";
     } catch (std::exception& e) {
         std::cout << "fatal error: " << e.what() << std::endl;
     }
