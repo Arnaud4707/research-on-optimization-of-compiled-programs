@@ -2,7 +2,7 @@ NAME = custom_grep
 
 CXX = c++
 
-CXXFLAGS = -Wall -Wextra -Werror -std=c++17 -g3
+CXXFLAGS = -Wall -Wextra -Werror -std=c++17 -g3 -O2 -fno-omit-frame-pointer
 
 SRC = grep.cpp
 

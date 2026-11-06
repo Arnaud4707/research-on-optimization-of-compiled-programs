@@ -1,4 +1,4 @@
-# Analyse of data
+# Analyze of data
 
 An using **hyperfine** we will have this informations:
 ![Return's image of hyperfine](./images/benchmacks.png "Initial Benchmarks")
@@ -14,4 +14,4 @@ First of all I will begin by optimize basics things like:
 
 The command **strace** is good for detect syscall
 
-The command **perf** is good for analyse performance
+The command **perf** is good for analyze performance
